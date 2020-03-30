@@ -1,4 +1,4 @@
-package zerror
+package shherror
 
 import (
 	"fmt"
@@ -19,4 +19,13 @@ func Fatal(name, content, at string) {
 
 	fmt.Println(err.Name + "\n\n\t - " + err.Content + "\n\nAt: " + err.At)
 	os.Exit(1)
+}
+
+//Warning log a warning into the console
+func Warning(name, content string) {
+	var err Error
+	err.Name = name
+	err.Content = content
+
+	fmt.Println(err.Name + "\n\n\t - " + err.Content)
 }

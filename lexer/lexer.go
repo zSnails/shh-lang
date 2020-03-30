@@ -1,9 +1,11 @@
 package lexer
 
 import (
+	"fmt"
 	"io/ioutil"
+	"strings"
 
-	"../zerror"
+	shherror "../shh-error"
 )
 
 //Token the tokens we'll use
@@ -21,47 +23,72 @@ var (
 	TT_MRTHAN = "MRTHAN"
 	//TT_LSRTHAN tt_plus
 	TT_LSRTHAN = "LSRTHAN"
+	output     []string
+	result     string
 )
 
 //Lexer lexer type def
 type Lexer struct {
 	Text        string
 	Pos         uint16
-	CurrentChar []uint16
+	CurrentChar []int
 	Verboose    bool
 }
 
 //Analyze analyze the code and interpret it
 func (l *Lexer) Analyze() {
-	var verbosedOut = Arr("START")
+	var verbosedOut = arr("START")
 	l.Pos = 0
-	l.CurrentChar = make([]uint16, 3000)
-	//already handled file reading and turned it into a string
+	l.CurrentChar = make([]int, 30000)
 	for i := 0; i < len(l.Text); i++ {
-		if l.Text[i] == '+' {
-			verbosedOut = Arr(TT_PLUS)
+		switch l.Text[i] {
+		case 'i':
+			iSection := strings.SplitN(l.Text, "i ", -1)
+			valuesText := []string{}
+			for i := range iSection {
+				text := string(iSection[i])
+				valuesText = append(valuesText, text)
+			}
+			result += strings.Join(valuesText, " ")
+			result = strings.Replace(result, "?", "", -1)
+			iStatements := strings.SplitN(result, " | ", -1)
+			checkImports(iStatements)
+			break
+		case '+':
+			verbosedOut = arr(TT_PLUS)
 			l.CurrentChar[l.Pos]++
-		} else if l.Text[i] == '-' {
-			verbosedOut = Arr(TT_MINUS)
+			break
+		case '-':
+			verbosedOut = arr(TT_MINUS)
 			l.CurrentChar[l.Pos]--
-		} else if l.Text[i] == '>' {
-			verbosedOut = Arr(TT_LSRTHAN)
+			break
+		case '>':
+			verbosedOut = arr(TT_MRTHAN)
 			l.CurrentChar[l.Pos] = 0
 			l.Pos++
-		} else if l.Text[i] == '<' {
-			verbosedOut = Arr(TT_MRTHAN)
+			break
+		case '<':
+			verbosedOut = arr(TT_LSRTHAN)
 			l.CurrentChar[l.Pos] = 0
 			l.Pos--
-		} else if l.Text[i] == '.' {
-			verbosedOut = Arr("PRINT_STATEMENT")
-			for c := 0; c < len(l.CurrentChar); c++ {
-				txt := string(l.CurrentChar[c])
-				print(txt)
+			break
+		case '.':
+			verbosedOut = arr("PRINT_STATEMENT")
+			valuesText := []string{}
+			for i := range l.CurrentChar {
+				text := string(l.CurrentChar[i])
+				valuesText = append(valuesText, text)
 			}
+			result += strings.Join(valuesText, "")
+			break
+		case '%':
+			verbosedOut = arr("RUNNABLE_MODULE")
+			print(result)
+			break
 		}
 	}
 	if l.Verboose {
-		println(verbosedOut)
+		fmt.Println("Verbose: ", verbosedOut)
 	}
 }
 
@@ -69,14 +96,22 @@ func (l *Lexer) Analyze() {
 func (l *Lexer) Parser(filename string, verboose bool) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		zerror.Fatal("FileNotFound", "The file you tried to compile does not exist", "CompileTime")
+		shherror.Fatal("FileNotFound", "The file you tried to compile does not exist", "CompileTime")
 	}
 	l.Text = string(data)
 	l.Verboose = verboose
 }
 
-func Arr(token string) []string {
-	var output []string
+//Arr create an arr and then output it to the console, only if the current mode is set to verbose
+func arr(token string) []string {
 	output = append(output, token)
 	return output
+}
+
+func checkImports(i []string) {
+	println(len(i))
+	fmt.Printf("%v", i)
+	for is := range i {
+		println(i[is])
+	}
 }
